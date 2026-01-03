@@ -6,9 +6,10 @@ import WebcamCapture from './components/WebcamCapture';
 import DetectionCanvas from './components/DetectionCanvas';
 import ResultsPanel from './components/ResultsPanel';
 import LoadingSpinner from './components/LoadingSpinner';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
 import { Detection, DetectionMode } from './types/detection';
 import { checkHealth, detectFromFile, detectFromBase64 } from './services/api';
-import { Upload, Camera, AlertCircle, X, Sparkles } from 'lucide-react';
+import { Upload, Camera, AlertCircle, X, Sparkles, BarChart3 } from 'lucide-react';
 
 // Particle background component - reduced count for mobile performance
 const ParticleBackground = () => {
@@ -196,7 +197,7 @@ function App() {
           <div className="glass rounded-xl sm:rounded-2xl p-1 sm:p-1.5 inline-flex w-full sm:w-auto">
             <motion.button
               onClick={() => switchMode('upload')}
-              className={`relative flex items-center justify-center gap-2 sm:gap-3 flex-1 sm:flex-initial px-4 sm:px-8 py-3 sm:py-4 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base ${
+              className={`relative flex items-center justify-center gap-2 sm:gap-3 flex-1 sm:flex-initial px-3 sm:px-6 py-3 sm:py-4 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base ${
                 mode === 'upload'
                   ? 'text-white'
                   : 'text-white/60 hover:text-white/80'
@@ -212,13 +213,12 @@ function App() {
                 />
               )}
               <Upload className="relative z-10 h-4 w-4 sm:h-5 sm:w-5" />
-              <span className="relative z-10">Upload</span>
-              <span className="relative z-10 hidden sm:inline">Image</span>
+              <span className="relative z-10 hidden sm:inline">Upload</span>
             </motion.button>
             
             <motion.button
               onClick={() => switchMode('webcam')}
-              className={`relative flex items-center justify-center gap-2 sm:gap-3 flex-1 sm:flex-initial px-4 sm:px-8 py-3 sm:py-4 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base ${
+              className={`relative flex items-center justify-center gap-2 sm:gap-3 flex-1 sm:flex-initial px-3 sm:px-6 py-3 sm:py-4 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base ${
                 mode === 'webcam'
                   ? 'text-white'
                   : 'text-white/60 hover:text-white/80'
@@ -234,39 +234,79 @@ function App() {
                 />
               )}
               <Camera className="relative z-10 h-4 w-4 sm:h-5 sm:w-5" />
-              <span className="relative z-10">Camera</span>
+              <span className="relative z-10 hidden sm:inline">Camera</span>
+            </motion.button>
+
+            <motion.button
+              onClick={() => switchMode('analytics')}
+              className={`relative flex items-center justify-center gap-2 sm:gap-3 flex-1 sm:flex-initial px-3 sm:px-6 py-3 sm:py-4 rounded-lg sm:rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base ${
+                mode === 'analytics'
+                  ? 'text-white'
+                  : 'text-white/60 hover:text-white/80'
+              }`}
+              whileHover={{ scale: mode === 'analytics' ? 1 : 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              {mode === 'analytics' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg sm:rounded-xl"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              <BarChart3 className="relative z-10 h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="relative z-10 hidden sm:inline">Analytics</span>
             </motion.button>
           </div>
         </motion.div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-          {/* Left Column - Input */}
-          <motion.div 
-            className="lg:col-span-2"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8">
-              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                <div className="p-1.5 sm:p-2 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg sm:rounded-xl">
-                  {mode === 'upload' ? (
-                    <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                  ) : (
-                    <Camera className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                  )}
-                </div>
-                <h2 className="text-lg sm:text-xl font-bold text-white">
-                  {mode === 'upload' ? 'Upload ID Card' : 'Camera Feed'}
-                </h2>
-              </div>
+        {/* Analytics Mode - Full Width */}
+        <AnimatePresence mode="wait">
+          {mode === 'analytics' ? (
+            <motion.div
+              key="analytics"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="max-w-5xl mx-auto"
+            >
+              <AnalyticsDashboard />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="detection"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              {/* Main Content Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+                {/* Left Column - Input */}
+                <motion.div 
+                  className="lg:col-span-2"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                      <div className="p-1.5 sm:p-2 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg sm:rounded-xl">
+                        {mode === 'upload' ? (
+                          <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                        ) : (
+                          <Camera className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                        )}
+                      </div>
+                      <h2 className="text-lg sm:text-xl font-bold text-white">
+                        {mode === 'upload' ? 'Upload ID Card' : 'Camera Feed'}
+                      </h2>
+                    </div>
 
-              <AnimatePresence mode="wait">
-                {mode === 'upload' ? (
-                  <motion.div
-                    key="upload"
-                    initial={{ opacity: 0, x: -20 }}
+                    <AnimatePresence mode="wait">
+                      {mode === 'upload' ? (
+                        <motion.div
+                          key="upload"
+                          initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                   >
@@ -343,7 +383,10 @@ function App() {
               imageHeight={imageHeight}
             />
           </motion.div>
-        </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Footer */}

@@ -31,4 +31,4 @@ export interface HealthResponse {
   model_path: string;
 }
 
-export type DetectionMode = 'upload' | 'webcam';
+export type DetectionMode = 'upload' | 'webcam' | 'analytics';
