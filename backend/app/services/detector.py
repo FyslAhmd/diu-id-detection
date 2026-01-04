@@ -3,6 +3,7 @@ import base64
 import cv2
 import numpy as np
 import torch
+import gc
 from pathlib import Path
 from typing import Tuple, List, Optional
 from ultralytics import YOLO
@@ -39,7 +40,9 @@ class IDCardDetector:
             
             torch.load = patched_load
             try:
+                # Force CPU mode for low-memory environments
                 self.model = YOLO(self.model_path)
+                self.model.to('cpu')
             finally:
                 torch.load = original_load
             
@@ -61,7 +64,7 @@ class IDCardDetector:
         return self.model is not None
     
     def preprocess_image(self, image_bytes: bytes) -> Tuple[np.ndarray, int, int]:
-        """Convert image bytes to numpy array"""
+        """Convert image bytes to numpy array and resize if needed"""
         nparr = np.frombuffer(image_bytes, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
@@ -69,7 +72,21 @@ class IDCardDetector:
             raise ValueError("Failed to decode image")
         
         height, width = img.shape[:2]
-        return img, width, height
+        original_width, original_height = width, height
+        
+        # Resize large images to save memory (max 1280px on longest side)
+        max_size = 1280
+        if max(height, width) > max_size:
+            if width > height:
+                new_width = max_size
+                new_height = int(height * max_size / width)
+            else:
+                new_height = max_size
+                new_width = int(width * max_size / height)
+            img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+            print(f"Resized image from {original_width}x{original_height} to {new_width}x{new_height}")
+        
+        return img, original_width, original_height
     
     def decode_base64_image(self, base64_str: str) -> bytes:
         """Decode base64 image string to bytes"""
@@ -142,6 +159,10 @@ class IDCardDetector:
             img, width, height = self.preprocess_image(image_bytes)
             detections, inference_time = self.detect(img)
             
+            # Clean up memory
+            del img
+            gc.collect()
+            
             return DetectionResponse(
                 success=True,
                 detections=detections,
@@ -152,6 +173,7 @@ class IDCardDetector:
             )
             
         except Exception as e:
+            gc.collect()
             return DetectionResponse(
                 success=False,
                 detections=[],
