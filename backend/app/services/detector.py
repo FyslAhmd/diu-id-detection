@@ -63,8 +63,14 @@ class IDCardDetector:
         """Check if model is loaded"""
         return self.model is not None
     
-    def preprocess_image(self, image_bytes: bytes) -> Tuple[np.ndarray, int, int]:
-        """Convert image bytes to numpy array and resize if needed"""
+    def preprocess_image(self, image_bytes: bytes) -> Tuple[np.ndarray, int, int, float, float]:
+        """Convert image bytes to numpy array and resize if needed
+        
+        Returns:
+            Tuple of (image, original_width, original_height, scale_x, scale_y)
+            scale_x and scale_y are the factors to multiply detection coordinates 
+            to get back to original image coordinates
+        """
         nparr = np.frombuffer(image_bytes, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
@@ -73,6 +79,7 @@ class IDCardDetector:
         
         height, width = img.shape[:2]
         original_width, original_height = width, height
+        scale_x, scale_y = 1.0, 1.0
         
         # Resize large images to save memory (max 1280px on longest side)
         max_size = 1280
@@ -84,9 +91,12 @@ class IDCardDetector:
                 new_height = max_size
                 new_width = int(width * max_size / height)
             img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+            # Calculate scale factors to convert detection coords back to original
+            scale_x = original_width / new_width
+            scale_y = original_height / new_height
             print(f"Resized image from {original_width}x{original_height} to {new_width}x{new_height}")
         
-        return img, original_width, original_height
+        return img, original_width, original_height, scale_x, scale_y
     
     def decode_base64_image(self, base64_str: str) -> bytes:
         """Decode base64 image string to bytes"""
@@ -156,8 +166,16 @@ class IDCardDetector:
     def detect_from_bytes(self, image_bytes: bytes) -> DetectionResponse:
         """Run detection on image bytes"""
         try:
-            img, width, height = self.preprocess_image(image_bytes)
+            img, width, height, scale_x, scale_y = self.preprocess_image(image_bytes)
             detections, inference_time = self.detect(img)
+            
+            # Scale bounding box coordinates back to original image size
+            if scale_x != 1.0 or scale_y != 1.0:
+                for detection in detections:
+                    detection.bbox.x1 *= scale_x
+                    detection.bbox.y1 *= scale_y
+                    detection.bbox.x2 *= scale_x
+                    detection.bbox.y2 *= scale_y
             
             # Clean up memory
             del img
